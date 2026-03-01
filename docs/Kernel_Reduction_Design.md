@@ -19,11 +19,17 @@ __global__ void reduceKernel(float *inputArray, float *output, int arraySize) {}
     Sums together all elements of the input array and updates the output value with that sum
 
     Arguments:
-        inputArray (*float): pointer to an array of **arraySize** float values which will be summer
+        inputArray (*float): pointer to an array of **arraySize** float values which will be summed
         output (*float): pointer to CPU memeory which will be updated by the sum
         arraySize (int): the size of the input array
 
-void main() {}
+void launchReduceKernel(float *d_input, float *d_output, int arraySize, int blockSize, int numBlocks) {}
 
-    Main method which will run at runtime, running relevant methods
+    Method to call the reduceKernel kernel
 
+    Arguments:
+        d_input (*float): pointer to an array of float values which will be summed
+        d_output (*float): pointer to device memory where the output will be stored
+        arraySize (int): the size of the input array that we will use to sum
+        blockSize (int): the size of the blocks we will use for the kernel
+        numBlocks (int): the number of blocks that we will use for the kernel
