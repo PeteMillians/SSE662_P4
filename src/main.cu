@@ -9,19 +9,52 @@
 
 // Constants for the system
 const int MAX = 1000;
-const size_t ARRAY_SIZE = 1e6;
+const size_t ARRAY_SIZE = 1e7;
 
 // Prototypes
 float cpuReduce(float *inputArray, int ARRAY_SIZE);
 float* generateInputArray(size_t length, uint64_t seed1, uint64_t seed2);
 uint64_t xoroshiro128plus(uint64_t s[2]);
+void reduceVaryingBlockSize(float *d_inputArr, float *inputArr, float *d_output, float actualSum);
+void reduceVaryingNumBlocks(float *d_inputArr, float *inputArr, float *d_output, float actualSum);
 
 int main(void) {
     /*
     Calls subsequent methods to find the kernel reduction solution
     */
+    
+    // Allocate space for device-copy arrays
+    float *d_inputArr; 
+    float *d_output;
+    cudaMalloc(&d_inputArr, ARRAY_SIZE * sizeof(float)); 
+    cudaMalloc(&d_output, sizeof(float));
+    
+    // Generate the input array
+    float *inputArr = generateInputArray(ARRAY_SIZE, 12345ULL, 67890ULL);
+    
+    // Compute the accurate sum of the array
+    float actualSum = cpuReduce(inputArr, ARRAY_SIZE);
+   
+    // Print table header once 
+    std::cout << "| Number of Blocks | Block Size | Accuracy (%) | Time (us) |\n"; 
+    std::cout << "|------------------|------------|--------------|-----------|\n";
 
     // First, try fixed block size, varying grid size
+    reduceVaryingBlockSize(d_inputArr, inputArr, d_output, actualSum);
+    std::cout << "|------------------|------------|--------------|-----------|\n";
+    
+    // Now, compute the time and accuracy if we have varying block size
+    reduceVaryingNumBlocks(d_inputArr, inputArr, d_output, actualSum);
+
+    // Free up the allocated memory
+    free(inputArr);
+    cudaFree(d_inputArr);
+    cudaFree(d_output);
+
+    return 0;
+}
+
+void reduceVaryingBlockSize(float *d_inputArr, float *inputArr, float *d_output, float actualSum) {
     int blockSize = 256;
     std::vector<int> numBlocks;
 
@@ -36,21 +69,6 @@ int main(void) {
     // Need to push back one more time to get that minimum value
     numBlocks.push_back(nb); 
     
-    // Allocate space for device-copy arrays
-    float *d_inputArr; 
-    float *d_output;
-    cudaMalloc(&d_inputArr, ARRAY_SIZE * sizeof(float)); 
-    cudaMalloc(&d_output, sizeof(float));
-    
-    // Generate the input array
-    float *inputArr = generateInputArray(ARRAY_SIZE, 12345ULL, 67890ULL);
-    
-    // Compute the accurate sum of the array
-    float actualSum = cpuReduce(inputArr, ARRAY_SIZE);
-    
-    // Print table header once 
-    std::cout << "| Number of Blocks | Block Size | Accuracy (%) | Time (us) |\n"; 
-    std::cout << "|------------------|------------|--------------|-----------|\n";
     
     // Iterate through each block number combination to find accuracy and time
     for (int i = 0; i < numBlocks.size(); i++) {
@@ -82,9 +100,10 @@ int main(void) {
         << " | " << std::setw(9) << duration << " |\n";
     }
     
-    // Now, compute the time and accuracy if we have varying block size
-    std::cout << "|------------------|------------|--------------|-----------|\n";
+}
 
+void reduceVaryingNumBlocks(float *d_inputArr, float *inputArr, float *d_output, float actualSum) {
+    
     // Get the maximum number of threads per block on our device
     cudaDeviceProp prop; 
     cudaGetDeviceProperties(&prop, 0); 
@@ -128,14 +147,6 @@ int main(void) {
         << " | " << std::setw(12) << accuracy 
         << " | " << std::setw(9) << duration << " |\n";
     }
-
-
-    // Free up the allocated memory
-    free(inputArr);
-    cudaFree(d_inputArr);
-    cudaFree(d_output);
-
-    return 0;
 }
 
 float cpuReduce(float *inputArray, int ARRAY_SIZE){
