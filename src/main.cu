@@ -9,9 +9,10 @@
 
 // Constants for the system
 const int MAX = 1000;
+const size_t ARRAY_SIZE = 1e6;
 
 // Prototypes
-float cpuReduce(float *inputArray, int arraySize);
+float cpuReduce(float *inputArray, int ARRAY_SIZE);
 float* generateInputArray(size_t length, uint64_t seed1, uint64_t seed2);
 uint64_t xoroshiro128plus(uint64_t s[2]);
 
@@ -22,11 +23,10 @@ int main(void) {
 
     // First, try fixed block size, varying grid size
     int blockSize = 256;
-    size_t arraySize = 1e6;
     std::vector<int> numBlocks;
 
     // Create array from 1 - minimum number of blocks needed to cover the array
-    int minBlocks = (arraySize + blockSize - 1) / blockSize; 
+    int minBlocks = (ARRAY_SIZE + blockSize - 1) / blockSize; 
     int nb = 1; 
     while (nb < minBlocks) { 
         numBlocks.push_back(nb); 
@@ -39,14 +39,14 @@ int main(void) {
     // Allocate space for device-copy arrays
     float *d_inputArr; 
     float *d_output;
-    cudaMalloc(&d_inputArr, arraySize * sizeof(float)); 
+    cudaMalloc(&d_inputArr, ARRAY_SIZE * sizeof(float)); 
     cudaMalloc(&d_output, sizeof(float));
     
     // Generate the input array
-    float *inputArr = generateInputArray(arraySize, 12345ULL, 67890ULL);
+    float *inputArr = generateInputArray(ARRAY_SIZE, 12345ULL, 67890ULL);
     
     // Compute the accurate sum of the array
-    float actualSum = cpuReduce(inputArr, arraySize);
+    float actualSum = cpuReduce(inputArr, ARRAY_SIZE);
     
     // Print table header once 
     std::cout << "| Number of Blocks | Block Size | Accuracy (%) | Time (us) |\n"; 
@@ -58,13 +58,13 @@ int main(void) {
         float output = 0.0f;
         
         // Copy the input and output array values to the GPU
-        cudaMemcpy(d_inputArr, inputArr, arraySize * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_inputArr, inputArr, ARRAY_SIZE * sizeof(float), cudaMemcpyHostToDevice);
         float zero = 0.0f;
         cudaMemcpy(d_output, &zero, sizeof(float), cudaMemcpyHostToDevice);
         
         // Compute the total time it takes to reduce the compute the SUM
         auto startTime = std::chrono::high_resolution_clock::now();
-        launchReduceKernel(d_inputArr, d_output, arraySize, blockSize, numBlocks[i]);
+        launchReduceKernel(d_inputArr, d_output, ARRAY_SIZE, blockSize, numBlocks[i]);
         cudaDeviceSynchronize();    // Wait for the kernel to finish before moving on
         auto endTime = std::chrono::high_resolution_clock::now();
         
@@ -100,18 +100,18 @@ int main(void) {
     for (int blockSize : blockSizes) {
 
         // Compute the number of blocks we can have given the block size
-        int numBlocks = (arraySize + blockSize - 1) / blockSize;    
+        int numBlocks = (ARRAY_SIZE + blockSize - 1) / blockSize;    
 
         float output = 0.0f;
 
         // Copy the input and output array values to the GPU
-        cudaMemcpy(d_inputArr, inputArr, arraySize * sizeof(float), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_inputArr, inputArr, ARRAY_SIZE * sizeof(float), cudaMemcpyHostToDevice);
         float zero = 0.0f;
         cudaMemcpy(d_output, &zero, sizeof(float), cudaMemcpyHostToDevice);
         
         // Compute the total time it takes to reduce the compute the SUM
         auto startTime = std::chrono::high_resolution_clock::now();
-        launchReduceKernel(d_inputArr, d_output, arraySize, blockSize, numBlocks);
+        launchReduceKernel(d_inputArr, d_output, ARRAY_SIZE, blockSize, numBlocks);
         cudaDeviceSynchronize();    // Wait for the kernel to finish before moving on
         auto endTime = std::chrono::high_resolution_clock::now();
         
@@ -138,21 +138,21 @@ int main(void) {
     return 0;
 }
 
-float cpuReduce(float *inputArray, int arraySize){
+float cpuReduce(float *inputArray, int ARRAY_SIZE){
     /*
     Iterates through the input array to determine the sum from the host side
 
     Arguments:
-        inputArray (*float): pointer to an array of **arraySize** float values which will be summed
+        inputArray (*float): pointer to an array of **ARRAY_SIZE** float values which will be summed
         output (*float): pointer to CPU memeory which will be updated by the sum
-        arraySize (int): the size of the input array
+        ARRAY_SIZE (int): the size of the input array
     */
 
     // Initialize output to 0
     float sum = 0.0f;
 
     // Iterate through each index in input array, adding the value to the output
-    for (int i = 0; i < arraySize; i++) {
+    for (int i = 0; i < ARRAY_SIZE; i++) {
 
         // Add the input array value to the output
         sum += inputArray[i];
