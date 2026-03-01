@@ -83,7 +83,6 @@ void reduceVaryingBlockSize(float *d_inputArr, float *inputArr, float *d_output,
         // Compute the total time it takes to reduce the compute the SUM
         auto startTime = std::chrono::high_resolution_clock::now();
         launchReduceKernel(d_inputArr, d_output, ARRAY_SIZE, blockSize, numBlocks[i]);
-        cudaDeviceSynchronize();    // Wait for the kernel to finish before moving on
         auto endTime = std::chrono::high_resolution_clock::now();
         
         // Copy the GPU output array back to the CPU
@@ -131,7 +130,6 @@ void reduceVaryingNumBlocks(float *d_inputArr, float *inputArr, float *d_output,
         // Compute the total time it takes to reduce the compute the SUM
         auto startTime = std::chrono::high_resolution_clock::now();
         launchReduceKernel(d_inputArr, d_output, ARRAY_SIZE, blockSize, numBlocks);
-        cudaDeviceSynchronize();    // Wait for the kernel to finish before moving on
         auto endTime = std::chrono::high_resolution_clock::now();
         
         // Copy the GPU output array back to the CPU
