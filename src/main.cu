@@ -110,7 +110,7 @@ void reduceVaryingNumBlocks(float *d_inputArr, float *inputArr, float *d_output,
 
     // Create block sizes based on the max block size
     std::vector<int> blockSizes; 
-    for (int bs = 128; bs <= maxBlockSize; bs *= 2) { 
+    for (int bs = 1; bs <= maxBlockSize; bs *= 2) { 
         blockSizes.push_back(bs); 
     }
 
